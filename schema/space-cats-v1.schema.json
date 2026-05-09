@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/edjuh/space-cats/schema/space-cats-v1.schema.json",
+  "title": "space-cats normalized catalog",
+  "type": "object",
+  "required": ["schema", "source", "target_count", "targets"],
+  "properties": {
+    "schema": { "const": "space-cats-v1" },
+    "source": { "type": "string" },
+    "target_count": { "type": "integer", "minimum": 0 },
+    "targets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "ra", "dec", "catalog"],
+        "properties": {
+          "name": { "type": "string" },
+          "common_name": { "type": ["string", "null"] },
+          "source_id": { "type": ["string", "null"] },
+          "aliases": { "type": "array", "items": { "type": "string" } },
+          "ra": { "type": "number", "minimum": 0, "maximum": 360 },
+          "dec": { "type": "number", "minimum": -90, "maximum": 90 },
+          "type": { "type": ["string", "null"] },
+          "object_definition": { "type": ["string", "null"] },
+          "catalog": { "type": "string" },
+          "science_mode": { "type": ["string", "null"] },
+          "max_mag": { "type": ["number", "null"] },
+          "b_mag": { "type": ["number", "null"] },
+          "v_mag": { "type": ["number", "null"] },
+          "constellation": { "type": ["string", "null"] },
+          "major_axis_arcmin": { "type": ["number", "null"] },
+          "minor_axis_arcmin": { "type": ["number", "null"] },
+          "priority": { "type": ["number", "integer", "null"] },
+          "duration": { "type": ["number", "integer", "null"] }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}
