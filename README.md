@@ -7,6 +7,9 @@ Astronomical object lists in normalized JSON format.
 - `catalogs/caldwell.json`
 - `catalogs/herschel400.json`
 - `catalogs/sharpless.json`
+- `catalogs/bennett.json`
+- `catalogs/dunlop.json`
+- `catalogs/bambury.json`
 
 Coordinates are J2000 decimal degrees:
 
@@ -25,8 +28,8 @@ The generated catalogs can be rebuilt from a local NGC/IC/Messier master file:
 python3 tools/build_deepsky_catalogs.py --master catalogs/ngc-ic-messier-catalog.json
 ```
 
-`caldwell`, `herschel400`, and `sharpless` require network access for their source tables.
+`caldwell`, `herschel400`, `sharpless`, `bennett`, `dunlop`, and `bambury` require network access for their source tables.
 
 ## Planned Southern Catalogs
 
-Bennett, Whitman, Bambury, and Dunlop are good follow-up catalogs for southern observers.
+Whitman is still pending a public machine-readable source.
