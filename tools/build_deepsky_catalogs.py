@@ -31,6 +31,7 @@ OPENGC_URL = "https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/datab
 BENNETT_URL = "https://assa.saao.ac.za/sections/deep-sky/jack-bennett-catalogue/"
 DUNLOP_URL = "https://assa.saao.ac.za/?p=2993"
 BAMBURY_URL = "https://www.astroleague.org/wp-content/uploads/2024/02/BAM600-John-Bambury-Southern-Skies-Observing-List-V20240102.xlsx"
+WHITMAN_URL = "https://www.ocrasc.ca/All%20Splendor.html"
 
 
 def _fetch_doc(url: str) -> html.HtmlElement:
@@ -89,6 +90,26 @@ def _float_or_none(value) -> float | None:
         return float(str(value).replace(",", ""))
     except (TypeError, ValueError):
         return None
+
+
+def _first_float(value: str | None) -> float | None:
+    match = re.search(r"[-+]?\d+(?:\.\d+)?", str(value or ""))
+    return float(match.group(0)) if match else None
+
+
+def _size_arcmin(value: str | None) -> tuple[float | None, float | None]:
+    text = str(value or "").strip().lower().replace('"', "")
+    if not text or text.startswith("---"):
+        return None, None
+    values = [_first_float(part) for part in re.split(r"x|,", text)]
+    values = [value for value in values if value is not None]
+    if not values:
+        return None, None
+    if "d" in text:
+        values = [value * 60.0 for value in values]
+    major = max(values)
+    minor = min(values) if len(values) > 1 else None
+    return major, minor
 
 
 def _opengc_key(value: str | int | None) -> str | None:
@@ -453,6 +474,57 @@ def build_bambury() -> list[dict]:
     return targets
 
 
+def _whitman_name(source_id: str, constellation: str, obj_type: str) -> str:
+    sid = _clean_name(source_id)
+    if sid.upper().startswith(("M", "IC", "B")):
+        return sid
+    if obj_type in {"Dbl", "Mlt", "Var"}:
+        return f"{sid} {constellation}"
+    if re.fullmatch(r"\d+[A-Z]?", sid) or re.fullmatch(r"\d+[/+]\d*[A-Z]?", sid):
+        return f"NGC {sid}"
+    return f"{sid} {constellation}" if len(sid) <= 5 and constellation else sid
+
+
+def build_whitman() -> list[dict]:
+    doc = _fetch_doc(WHITMAN_URL)
+    targets = []
+    for table in doc.xpath("//table"):
+        rows = table.xpath(".//tr")
+        header = [" ".join(cell.text_content().split()) for cell in rows[0].xpath("./th|./td")] if rows else []
+        if header[:3] != ["ID", "Con", "Type"]:
+            continue
+        for tr in rows[1:]:
+            cells = [" ".join(cell.text_content().split()).replace("–", "-") for cell in tr.xpath("./td")]
+            if len(cells) < 7:
+                continue
+            source_id, constellation, obj_type, ra_text, dec_text, mag_text, size_text = cells[:7]
+            name = _whitman_name(source_id, constellation, obj_type)
+            major, minor = _size_arcmin(size_text)
+            targets.append(
+                {
+                    "name": name,
+                    "common_name": "",
+                    "source_id": f"Whitman {len(targets) + 1:03d}",
+                    "aliases": sorted({source_id, f"{source_id} {constellation}", name} - {""}),
+                    "ra": _hms_to_deg(ra_text.rstrip(".")),
+                    "dec": _dms_to_deg(dec_text.replace("--", "0")),
+                    "type": obj_type,
+                    "object_definition": obj_type,
+                    "catalog": "whitman",
+                    "science_mode": "imaging",
+                    "max_mag": _first_float(mag_text),
+                    "b_mag": None,
+                    "v_mag": _first_float(mag_text),
+                    "constellation": constellation,
+                    "major_axis_arcmin": major,
+                    "minor_axis_arcmin": minor,
+                    "priority": -8,
+                    "duration": 1200,
+                }
+            )
+    return targets
+
+
 def write_catalog(name: str, targets: list[dict], source: str) -> Path:
     payload = {
         "#objective": f"Normalized {name} deep-sky catalog. Coordinates are J2000 decimal degrees.",
@@ -472,11 +544,29 @@ def main() -> None:
     parser.add_argument(
         "--only",
         nargs="*",
-        choices=["messier", "caldwell", "herschel400", "sharpless", "bennett", "dunlop", "bambury"],
+        choices=[
+            "messier",
+            "caldwell",
+            "herschel400",
+            "sharpless",
+            "bennett",
+            "dunlop",
+            "bambury",
+            "whitman",
+        ],
     )
     args = parser.parse_args()
 
-    wanted = args.only or ["messier", "caldwell", "herschel400", "sharpless", "bennett", "dunlop", "bambury"]
+    wanted = args.only or [
+        "messier",
+        "caldwell",
+        "herschel400",
+        "sharpless",
+        "bennett",
+        "dunlop",
+        "bambury",
+        "whitman",
+    ]
     needs_master = bool({"messier", "caldwell", "herschel400"} & set(wanted))
     master_rows = json.loads(args.master.read_text(encoding="utf-8")) if needs_master else []
     builders = {
@@ -487,12 +577,14 @@ def main() -> None:
         "bennett": build_bennett,
         "dunlop": build_dunlop,
         "bambury": build_bambury,
+        "whitman": build_whitman,
     }
     sources = {
         "sharpless": SHARPLESS_URL,
         "bennett": BENNETT_URL,
         "dunlop": DUNLOP_URL,
         "bambury": BAMBURY_URL,
+        "whitman": WHITMAN_URL,
     }
     for name in wanted:
         targets = builders[name]()

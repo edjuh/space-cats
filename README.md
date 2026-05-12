@@ -10,6 +10,7 @@ Astronomical object lists in normalized JSON format.
 - `catalogs/bennett.json`
 - `catalogs/dunlop.json`
 - `catalogs/bambury.json`
+- `catalogs/whitman.json`
 
 Coordinates are J2000 decimal degrees:
 
@@ -28,8 +29,4 @@ The generated catalogs can be rebuilt from a local NGC/IC/Messier master file:
 python3 tools/build_deepsky_catalogs.py --master catalogs/ngc-ic-messier-catalog.json
 ```
 
-`caldwell`, `herschel400`, `sharpless`, `bennett`, `dunlop`, and `bambury` require network access for their source tables.
-
-## Planned Southern Catalogs
-
-Whitman is still pending a public machine-readable source.
+`caldwell`, `herschel400`, `sharpless`, `bennett`, `dunlop`, `bambury`, and `whitman` require network access for their source tables.
